@@ -12,14 +12,14 @@ from flask_gravatar import Gravatar
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY")
-ckeditor = CKEditor(app)
+app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "6495C14D63C9D659421A17D560B8062B")
 Bootstrap(app)
+ckeditor = CKEditor(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 
 # CONNECT TO DB
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite:///blog.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -123,6 +123,10 @@ def login():
         password = form.password.data
         email = form.email.data
         user = User.query.filter_by(email=email).first()
+        print(user)
+        if user is None:
+            flash(u'Sign Up or Sign In', category='error')
+            return redirect(url_for('register'))
         if check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for('get_all_posts'))
@@ -148,7 +152,7 @@ def show_post(post_id):
     if form.validate_on_submit():
         if not current_user.is_authenticated:
             flash("You need to login to leave a comment!", 'error')
-            return redirect(url_for('login')).data
+            return redirect(url_for('login'))
         comment = Comment(
             text=form.comment.data,
             blog_post_id=post_id,
@@ -156,7 +160,7 @@ def show_post(post_id):
         )
         db.session.add(comment)
         db.session.commit()
-        return redirect(url_for('show_post',post_id=post_id))
+        return redirect(url_for('show_post', post_id=post_id))
     return render_template(
         "post.html",
         post=requested_post,
