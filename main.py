@@ -188,7 +188,7 @@ def contact():
         # TODO 1: Add autofill form data for user currently authenticated
         message = Message(
             f"Message from {form.email.data}",
-            sender=[app.config["MAIL_USERNAME"]],
+            sender="sender@email.com",
             recipients=[app.config["MAIL_USERNAME"]]
         )
         credentials = f"<p id='name'>{form.name.data}</p>\n" \
