@@ -7,12 +7,18 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
 from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
-from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
+from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm, EmailForm
 from flask_gravatar import Gravatar
+from flask_mail import Mail, Message
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "6495C14D63C9D659421A17D560B8062B")
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_PORT"] = 465
+app.config["MAIL_USE_SSL"] = True
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
 Bootstrap(app)
 ckeditor = CKEditor(app)
 login_manager = LoginManager()
@@ -22,6 +28,7 @@ login_manager.init_app(app)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL", "sqlite:///blog.db")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+mail = Mail(app)
 
 gravatar = Gravatar(
     app,
@@ -174,9 +181,25 @@ def about():
     return render_template("about.html")
 
 
-@app.route("/contact")
+@app.route("/contact", methods=["GET", "POST"])
 def contact():
-    return render_template("contact.html")
+    form = EmailForm()
+    if form.validate_on_submit():
+        # TODO 1: Add autofill form data for user currently authenticated
+        message = Message(
+            f"Message from {form.email.data}",
+            sender=[app.config["MAIL_USERNAME"]],
+            recipients=[app.config["MAIL_USERNAME"]]
+        )
+        credentials = f"<p id='name'>{form.name.data}</p>\n" \
+                      f"<p id='phone'>{form.phone.data}</p>\n" \
+                      f"<p id='email'>{form.email.data}</p>"
+        message.html = form.message.data + credentials
+        mail.send(message)
+        flash('Message successfully sent', 'info')
+        return redirect(url_for('contact'))
+        # pass
+    return render_template("contact.html", form=form)
 
 
 @app.route("/new-post", methods=["GET", "POST"])
